@@ -1,4 +1,4 @@
-import MySQLdb as mysql
+import MySQLdb as MySQL
 
 
 class BleedDB:
@@ -10,9 +10,8 @@ class BleedDB:
         self.config = config
         self.source = source
 
-        self.connection = mysql.connect(host=config["host"], user=config["user"], passwd=config["pass"],
+        self.connection = MySQL.connect(host=config["host"], user=config["user"], passwd=config["pass"],
                                         db=config['name'])
-        self.get_tables()
 
     def get_tables(self):
         if self.source is False or (self.source is True and self.config["tables"]["all"]):
@@ -22,3 +21,9 @@ class BleedDB:
             cursor.close()
         else:
             self.tables = self.config["tables"]["get"]
+
+    def toggle_fk(self, disable=False):
+        cursor = self.connection.cursor()
+        on = (disable is False)
+        print on
+        cursor.execute("SET foreign_key_checks = " + str(on) + ";")
