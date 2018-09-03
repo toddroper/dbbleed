@@ -8,10 +8,12 @@ class Table:
     columns = []
     values = []
 
-    def __init__(self, table, source, destination):
+    def __init__(self, table, source, destination, create, replace):
         self.table = table
         self.source = source
         self.destination = destination
+        self.create = create
+        self.replace = replace
         self.insert_stmt = self.get_insert_base()
 
     def build_table(self):
@@ -53,7 +55,7 @@ class Table:
     def check_table(self):
         exists = self.table_exists()
 
-        if exists is True and self.source.config["tables"]["replace"] is False:
+        if exists is True and self.replace is False:
             raise ValueError("The table " + self.table + " exists.  "
                              "If you want to replace it, set source.tables.create.replace to true in your config file.")
 
@@ -76,15 +78,6 @@ class Table:
             db.close()
             return False
 
-    def get_insert_record(self, record):
-        data = []
-        for field in record:
-            if isinstance(field, long):
-                field = str(field)
-            data.append(field)
-
-        return data
-
     def get_insert_base(self):
         columns = self.get_column_string()
         string = "INSERT INTO " + self.table + "(" + columns["columns"] + ") Values (" + columns["values"] + ")"
@@ -104,8 +97,18 @@ class Table:
 
         return {"columns": ",".join(output), "values": ",".join(values)}
 
+    # @TODO Make this static.
+    def get_insert_record(self, record):
+        data = []
+        for field in record:
+            if isinstance(field, long):
+                field = str(field)
+            data.append(field)
+
+        return data
+
+    # @TODO Make this static.
     def get_column_type(self, column):
-        # print column
         string = re.split(r'\W+', column)
 
         types = {
@@ -117,4 +120,4 @@ class Table:
             "longtext": "%s"
         }
 
-        return types.get(string[0], "Fuck no")
+        return types.get(string[0], "Type not found.")
