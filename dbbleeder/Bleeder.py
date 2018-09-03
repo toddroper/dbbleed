@@ -4,8 +4,10 @@ from dbbleeder.datatools.CreateTable import CreateTable
 
 
 class Bleeder:
+    mode = False
 
     def __init__(self, config):
+        self.config = config
         self.source = BleedDB(config["source"], True)
         self.destination = BleedDB(config["destination"])
 
