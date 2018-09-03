@@ -14,11 +14,9 @@ class Table:
         self.destination = destination
         self.insert_stmt = self.get_insert_base()
 
-    def begin(self):
+    def build_table(self):
         self.check_table()
         self.create_table()
-        if self.source.config["tables"]["structure_only"] is False:
-            self.copy_data()
 
     def copy_data(self):
         data_cursor = self.source.connection.cursor()
