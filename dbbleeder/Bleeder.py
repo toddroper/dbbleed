@@ -44,6 +44,7 @@ class Bleeder:
     def copy_data(self):
         if self.current_table is False:
             self.get_table()
+        self.current_table.copy_data()
 
     def create_table(self):
         if isinstance(self.name, str) or isinstance(self.name, unicode):
