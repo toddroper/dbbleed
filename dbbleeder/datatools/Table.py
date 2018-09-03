@@ -1,5 +1,6 @@
 import re
 import MySQLdb
+from datetime import datetime
 from pprint import pprint
 
 
@@ -8,23 +9,34 @@ class Table:
     columns = []
     values = []
     primary = False
+    records = 0
+    batch_size = 100
 
-    def __init__(self, table, source, destination, create, replace):
+    def __init__(self, table, mode, source, destination, create, replace):
         self.table = table
+        self.mode = mode
         self.source = source
         self.destination = destination
         self.create = create
         self.replace = replace
         self.insert_stmt = self.get_insert_base()
 
+        # Turn off foreign key checks
+        self.destination.toggle_fk(True)
+
+        if self.mode == "db":
+            self.batch_size = self.source.config["tables"]["records"]
+        else:
+            self.batch_size = self.source.config["tables"]["batch_size"]
+
     def build_table(self):
         self.check_table()
         self.create_table()
 
-    def copy_data(self):
+    def copy_data(self, start=0):
         data_cursor = self.source.connection.cursor()
         data_insert = self.destination.connection.cursor()
-        query = self.build_query()
+        query = self.build_query(start)
 
         data_cursor.execute(query)
 
@@ -40,6 +52,9 @@ class Table:
 
         data_insert.close()
         data_cursor.close()
+        batch_data = "Copied records " + str(start) + " to " + str(start + self.batch_size)
+        self.records += self.batch_size
+        return batch_data
 
     def create_table(self):
 
@@ -61,9 +76,7 @@ class Table:
 
         if exists:
             drop_cursor = self.destination.connection.cursor()
-            drop_cursor.execute("SET foreign_key_checks = 0;")
             drop_cursor.execute("DROP TABLE " + self.table)
-            drop_cursor.execute("SET foreign_key_checks = 1;")
             drop_cursor.close()
 
     def table_exists(self):
@@ -104,24 +117,49 @@ class Table:
 
         return {"columns": ",".join(output), "values": ",".join(values)}
 
-    def build_query(self):
-        qry_string = ["SELECT * FROM", self.table]
+    def build_query(self, start):
+        qry_string = ["SELECT * FROM", self.table, self.get_where()]
 
-        if self.source.config["tables"]["order"] is not False:
+        if 'order' in self.source.config["tables"] and self.source.config["tables"]["order"] is not False:
             order_by = "ORDER BY " + self.primary + " " + self.source.config["tables"]["order"]
             qry_string.append(order_by)
 
-        if self.source.config["tables"]["all"] is False:
-            qry_string.append("LIMIT 0, " + str(self.source.config["tables"]["records"]))
+        limit = self.get_limit(start)
+        if start > 0:
+            start += 1
+
+        qry_string.append("LIMIT " + str(start) + "," + limit)
+
+        print " ".join(qry_string)
 
         return " ".join(qry_string)
+
+    def get_limit(self, start):
+        return str(start + self.batch_size)
+
+    def get_where(self):
+        where = ''
+        if 'where' in self.source.config["tables"]:
+            where = "WHERE " + self.source.config["tables"]["where"]
+        return where
+
+    def get_row_count(self):
+        db = self.source.connection.cursor()
+        string = "SELECT COUNT(*) FROM " + self.table + " " + self.get_where()
+        print string
+        db.execute(string)
+
+        return int(db.fetchall()[0][0])
 
     # @TODO Make this static.
     def get_insert_record(self, record):
         data = []
         for field in record:
-            if isinstance(field, long):
+            if isinstance(field, long) or isinstance(field, int):
                 field = str(field)
+
+            if type(field) == datetime:
+                field = field.strftime("%Y-%m-%d %H:%M:%S")
             data.append(field)
 
         return data
@@ -130,11 +168,14 @@ class Table:
     def get_column_type(self, column):
         string = re.split(r'\W+', column)
 
+        # print string
+
         types = {
             "varchar": "%s",
             "timestamp": "%s",
             "int": "%s",
             "tinyint": "%s",
+            "bigint": "%s",
             "text": "%s",
             "longtext": "%s"
         }
