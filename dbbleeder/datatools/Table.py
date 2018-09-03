@@ -7,6 +7,7 @@ class Table:
 
     columns = []
     values = []
+    primary = False
 
     def __init__(self, table, source, destination, create, replace):
         self.table = table
@@ -23,8 +24,9 @@ class Table:
     def copy_data(self):
         data_cursor = self.source.connection.cursor()
         data_insert = self.destination.connection.cursor()
+        query = self.build_query()
 
-        data_cursor.execute("SELECT * FROM " + self.table + " LIMIT 0, " + str(self.source.config["tables"]["records"]))
+        data_cursor.execute(query)
 
         try:
             for record in data_cursor:
@@ -88,12 +90,31 @@ class Table:
         db.execute("DESCRIBE " + self.table)
 
         for column in db:
+            try:
+                if column.index("PRI"):
+                    self.primary = column[0]
+            except ValueError as e:
+                # We know most columns won't be PRI.
+                e.message
+
             value = self.get_column_type(column[1])
             if value is not False:
                 self.columns.append(column[0])
                 values.append(value)
 
         return {"columns": ",".join(output), "values": ",".join(values)}
+
+    def build_query(self):
+        qry_string = ["SELECT * FROM", self.table]
+
+        if self.source.config["tables"]["order"] is not False:
+            order_by = "ORDER BY " + self.primary + " " + self.source.config["tables"]["order"]
+            qry_string.append(order_by)
+
+        if self.source.config["tables"]["all"] is False:
+            qry_string.append("LIMIT 0, " + str(self.source.config["tables"]["records"]))
+
+        return " ".join(qry_string)
 
     # @TODO Make this static.
     def get_insert_record(self, record):
