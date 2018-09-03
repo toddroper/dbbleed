@@ -1,32 +1,63 @@
 import thread
 from dbbleeder.datatools.BleedDB import BleedDB
-from dbbleeder.datatools.CreateTable import CreateTable
+from dbbleeder.datatools.Table import Table
 
 
 class Bleeder:
     mode = False
+    current_table = False
+    name = false
 
     def __init__(self, config):
         self.config = config
+        self.create = self.config["source"]["table"]["create"]
+        self.replace = self.config["source"]["table"]["create"]
         self.source = BleedDB(config["source"], True)
         self.destination = BleedDB(config["destination"])
 
     def boot(self):
+        # If we aren't doing a DB operation, set the table name.
+        if self.mode != "db":
+            self.name = self.config["source"]["table"]["name"]
+        # Now run delegate ops for copying the db/table/data.
         if self.mode == "db":
             self.copy_tables()
+        elif self.mode == "table":
+            self.copy_table()
+        else:
+            self.copy_data()
 
     def copy_tables(self):
         for table in self.source.tables:
-            if self.source.config["tables"]["create"] is not False:
-                self.create(table)
+            self.name = table
+            if self.create is not False:
+                self.create_table()
+            if self.config["source"]["table"]["structure_only"] is False:
+                self.copy_data()
+            # once we're done, clear out the current_table and name.
+            self.current_table = False
+            self.name = False
 
-    def create(self, table):
-        if isinstance(table, str) or isinstance(table, unicode):
-            name = str(table)
+    def copy_table(self):
+        self.get_table(self.create)
+
+    def copy_data(self):
+        if self.current_table is False:
+            self.get_table()
+
+    def create_table(self):
+        if isinstance(self.name, str) or isinstance(self.name, unicode):
+            name = str(self.name)
         else:
-            name = str(table[0])
+            name = str(self.name[0])
 
         print "Processing Table: " + name
 
-        dest_table = CreateTable(name, self.source, self.destination)
-        dest_table.begin()
+        self.get_table(True)
+
+    def get_table(self, build=False):
+        self.current_table = Table(self.name, self.source, self.destination)
+
+        if build is True:
+            self.current_table.build_table()
+
