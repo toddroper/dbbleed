@@ -11,7 +11,11 @@ class Bleeder:
         self.source = BleedDB(config["source"], True)
         self.destination = BleedDB(config["destination"])
 
-    def copy(self):
+    def boot(self):
+        if self.mode == "db":
+            self.copy_tables()
+
+    def copy_tables(self):
         for table in self.source.tables:
             if self.source.config["tables"]["create"] is not False:
                 self.create(table)

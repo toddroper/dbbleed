@@ -14,7 +14,7 @@ parser.add_option("-m", "--mode", dest="mode", default="db",
 def main():
     bleeder = dsconfig(options)
     bleeder.mode = options.mode
-    bleeder.copy()
+    bleeder.boot()
 
 
 if __name__ == '__main__':
