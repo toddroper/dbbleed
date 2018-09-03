@@ -3,7 +3,7 @@ import MySQLdb
 from pprint import pprint
 
 
-class CreateTable:
+class Table:
 
     columns = []
     values = []
