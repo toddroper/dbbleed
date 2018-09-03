@@ -6,12 +6,12 @@ from dbbleeder.datatools.Table import Table
 class Bleeder:
     mode = False
     current_table = False
-    name = false
+    name = False
 
     def __init__(self, config):
         self.config = config
-        self.create = self.config["source"]["table"]["create"]
-        self.replace = self.config["source"]["table"]["create"]
+        self.create = self.config["create_table"]
+        self.replace = self.config["replace_table"]
         self.source = BleedDB(config["source"], True)
         self.destination = BleedDB(config["destination"])
 
@@ -32,7 +32,7 @@ class Bleeder:
             self.name = table
             if self.create is not False:
                 self.create_table()
-            if self.config["source"]["table"]["structure_only"] is False:
+            if self.config["structure_only"] is False:
                 self.copy_data()
             # once we're done, clear out the current_table and name.
             self.current_table = False
@@ -56,7 +56,7 @@ class Bleeder:
         self.get_table(True)
 
     def get_table(self, build=False):
-        self.current_table = Table(self.name, self.source, self.destination)
+        self.current_table = Table(self.name, self.source, self.destination, self.create, self.replace)
 
         if build is True:
             self.current_table.build_table()
