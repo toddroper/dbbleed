@@ -28,10 +28,8 @@ class Table:
 
         try:
             for record in data_cursor:
-                shit = self.get_insert_record(record)
-                print self.insert_stmt
-                print shit
-                data_insert.execute(self.insert_stmt, shit)
+                data = self.get_insert_record(record)
+                data_insert.execute(self.insert_stmt, data)
 
             self.destination.connection.commit()
         except MySQLdb.Error as error:
