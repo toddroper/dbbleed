@@ -41,9 +41,11 @@ class Table:
         data_cursor.execute(query)
 
         try:
+            inserts = []
             for record in data_cursor:
                 data = self.get_insert_record(record)
-                data_insert.execute(self.insert_stmt, data)
+                inserts.append(data)
+            data_insert.executemany(self.insert_stmt, inserts)
 
             self.destination.connection.commit()
         except MySQLdb.Error as error:
@@ -93,8 +95,8 @@ class Table:
 
     def get_insert_base(self):
         columns = self.get_column_string()
-        string = "INSERT INTO " + self.table + "(" + columns["columns"] + ") Values (" + columns["values"] + ")"
-        return string
+
+        return "INSERT INTO " + self.table + "(" + columns["columns"] + ") Values (" + columns["values"] + ")"
 
     def get_column_string(self):
         output = []
@@ -112,7 +114,7 @@ class Table:
 
             value = self.get_column_type(column[1])
             if value is not False:
-                self.columns.append(column[0])
+                output.append(column[0])
                 values.append(value)
 
         return {"columns": ",".join(output), "values": ",".join(values)}
@@ -130,8 +132,6 @@ class Table:
 
         qry_string.append("LIMIT " + str(start) + "," + limit)
 
-        print " ".join(qry_string)
-
         return " ".join(qry_string)
 
     def get_limit(self, start):
@@ -146,7 +146,6 @@ class Table:
     def get_row_count(self):
         db = self.source.connection.cursor()
         string = "SELECT COUNT(*) FROM " + self.table + " " + self.get_where()
-        print string
         db.execute(string)
 
         return int(db.fetchall()[0][0])
@@ -160,6 +159,7 @@ class Table:
 
             if type(field) == datetime:
                 field = field.strftime("%Y-%m-%d %H:%M:%S")
+
             data.append(field)
 
         return data
@@ -167,8 +167,6 @@ class Table:
     # @TODO Make this static.
     def get_column_type(self, column):
         string = re.split(r'\W+', column)
-
-        # print string
 
         types = {
             "varchar": "%s",
