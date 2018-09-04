@@ -49,8 +49,7 @@ class Table:
 
             self.destination.connection.commit()
         except MySQLdb.Error as error:
-            pprint(error)
-            self.destination.connection.rollback()
+            error.message
 
         data_insert.close()
         data_cursor.close()
