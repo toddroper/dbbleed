@@ -1,3 +1,4 @@
+import time
 from optparse import OptionParser
 from dbbleeder.commands.preflight import dsconfig
 
@@ -12,9 +13,14 @@ parser.add_option("-m", "--mode", dest="mode", default="db",
 
 
 def main():
+    start = time.time()
     bleeder = dsconfig(options)
     bleeder.mode = options.mode
     bleeder.boot()
+    end = time.time()
+    print "Start: " + str(start)
+    print "End: " + str(end)
+    print "Seconds elapsed: " + str((end - start))
 
 
 if __name__ == '__main__':
