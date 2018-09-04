@@ -1,6 +1,7 @@
-from threading import Thread, ThreadError
+from multiprocessing import Pool
 from dbbleeder.datatools.BleedDB import BleedDB
 from dbbleeder.datatools.Table import Table
+from dbbleeder.datatools.Processes import duplicate_data, process_result
 
 
 class Bleeder:
@@ -48,21 +49,14 @@ class Bleeder:
         rows = self.current_table.get_row_count()
         batch_size = self.current_table.batch_size
         count = 0
-        threads = 0
-        bleeder = self
 
         while rows > 0:
-            if threads < 4:
-                name = "Thread" + str(threads)
-                Thread(target=bleeder.copy_data(count), name=name)
-                count += batch_size
-                rows -= batch_size
-            print "Count:"
-            print count
-            print rows
+            self.copy_data(count)
+            count += batch_size
+            rows -= batch_size
 
     def copy_data(self, start=0):
-        print self.current_table.copy_data(start)
+        self.current_table.copy_data(start)
 
     def create_table(self):
         if isinstance(self.name, str) or isinstance(self.name, unicode):
